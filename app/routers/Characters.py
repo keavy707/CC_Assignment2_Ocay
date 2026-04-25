@@ -3,6 +3,7 @@ from app.models.Characters import Characters
 from sqlmodel import Session, select
 from typing import List
 from .. import schemas
+from sqlalchemy.orm import joinedload
 
 router = APIRouter(prefix="/Characters", tags=["Characters"])
 from ..database import engine
@@ -19,9 +20,12 @@ async def get_all():
 @router.get("/{item_id}", summary="Get Characters by ID", response_model=schemas.CharacterDetail)
 async def get_item(item_id: int):
     with Session(engine) as session:
-        item = session.get(Characters, item_id)
+        # We add .options(joinedload(Characters.voice_actor)) here
+        statement = select(Characters).where(Characters.id == item_id).options(joinedload(Characters.voice_actor))
+        item = session.exec(statement).first()
+        
         if not item:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Character not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Character not found")
         return item
 
 
